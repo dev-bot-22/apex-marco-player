@@ -69,9 +69,9 @@ function injectLockdown(html: string, upstreamOrigin: string, routePath: string)
   const baseTag = `<base href="${htmlAttr(upstreamOrigin)}/">`;
   const guard = `<style>a[href*="batch"],button,[role="button"]{}</style><script>
 (function(){
-  var allowedPath=${safeJson(routePath)};
   var lockedPath=location.pathname;
   var lockedSearch=location.search;
+  var nativeReplace=null;
   function isNavEl(el){
     var node=el;
     while(node && node!==document.documentElement){
@@ -100,15 +100,16 @@ function injectLockdown(html: string, upstreamOrigin: string, routePath: string)
   }
   function stay(){
     try {
-      if(location.pathname!==lockedPath || location.search!==lockedSearch) history.replaceState(null,'',lockedPath+lockedSearch+location.hash);
+      if(nativeReplace && (location.pathname!==lockedPath || location.search!==lockedSearch)) nativeReplace(null,'',lockedPath+lockedSearch+location.hash);
     } catch(e) {}
   }
   window.open=function(){ return null; };
   try {
-    var push=history.pushState.bind(history), replace=history.replaceState.bind(history);
+    nativeReplace=history.replaceState.bind(history);
     history.pushState=function(){ stay(); return null; };
     history.replaceState=function(){ stay(); return null; };
   } catch(e) {}
+  window.addEventListener('beforeunload', function(e){ e.preventDefault(); e.returnValue=''; return ''; });
   document.addEventListener('click', function(e){ if(isNavEl(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); hideNav(); return false; } }, true);
   document.addEventListener('submit', function(e){ e.preventDefault(); e.stopImmediatePropagation(); return false; }, true);
   window.addEventListener('popstate', stay, true);
@@ -181,7 +182,7 @@ async function frameProxy(request: Request, options: LockedPlayerOptions) {
   return new Response(injectLockdown(body, options.upstreamOrigin, options.routePath), {
     status: 200,
     headers: playerHeaders({
-      "content-security-policy": "object-src 'none'; form-action 'none'; frame-src 'none'; child-src 'none'; frame-ancestors 'self'; navigate-to 'self'",
+      "content-security-policy": "object-src 'none'; form-action 'none'; frame-src 'none'; child-src 'none'; frame-ancestors 'self'",
     }),
   });
 }
