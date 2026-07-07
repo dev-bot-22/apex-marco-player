@@ -89,7 +89,7 @@ function rewriteText(body: string, cfg: UpstreamConfig): string {
   const proto = new RegExp(`//${cfg.host.replace(/\./g, "\\.")}`, "g");
   out = out.replace(proto, cfg.prefix);
   if (/<\/body>/i.test(out)) {
-    out = out.replace(/<\/body>/i, `${NAV_LOCK_SCRIPT}</body>`);
+    out = out.replace(/<\/body>/i, `${WATERMARK_INJECT}${NAV_LOCK_SCRIPT}</body>`);
   }
   return out;
 }
